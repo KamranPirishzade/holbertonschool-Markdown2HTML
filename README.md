@@ -1,50 +1,92 @@
-# holbertonschool-Markdown2HTML
-# Markdown2HTML
+<h1 align="center">Markdown to HTML</h1>
 
-**Markdown2HTML** is a simple tool for converting Markdown files into HTML. This tool is designed to make it easy to transform Markdown content into well-formatted HTML pages.
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/4/48/Markdown-mark.svg" alt="Markdown Logo" >
+</p>
 
-## Features
+## Novice Level  
+**By:** Guillaume, CTO at Holberton School  
+**Weight:** 1
 
-- Converts Markdown to HTML with customizable options
-- Supports standard Markdown syntax
-- Easy to integrate into build processes or workflows
-- Command-line interface for easy use
+---
 
-## Installation
+### 📖 Description
 
-To install Markdown2HTML, you need to have Node.js and npm installed. You can then install the tool globally using npm:
+Markdown is awesome! All your `README.md` files are written in Markdown, but do you know how GitHub renders them behind the scenes?
+
+This project is about building a simple Markdown-to-HTML converter using Python. You will parse Markdown syntax and convert it to corresponding HTML, **without using external Markdown libraries**.
+
+---
+
+### ✅ Requirements
+
+- All files are interpreted/compiled on Ubuntu 18.04 LTS using Python 3 (version 3.7 or higher)
+- The first line of all your files should be exactly:  
+  `#!/usr/bin/python3`
+- A `README.md` file at the root of the folder is mandatory
+- Your code must follow **PEP 8 style guide** (version 1.7.*)
+- All your files must be **executable**
+- All your Python modules must be **documented**:
+  ```bash
+  python3 -c 'print(__import__("my_module").__doc__)'
+  ```
+- Your code should **not execute when imported**:
+  ```python
+  if __name__ == "__main__":
+      # entry point
+  ```
+- ❌ You are **not allowed** to use the built-in Python Markdown library
+
+---
+
+### 🚀 Features
+
+Converts Markdown to HTML:
+
+- Headers
+- Emphasis (bold and italic)
+- Unordered lists
+- Paragraphs
+
+---
+
+### 🛠 Usage
 
 ```bash
-npm install -g markdown2html 
+./markdown2html.py README.md README.html
 ```
-## Usage
-To convert a Markdown file to HTML, use the following command
-```bash
-markdown2html input.md -o output.html
-```
-## Options
- - o, --output Specify the output file (e.g., output.html)
- - t, --template Use a custom HTML template
- - h, --help Display help information
-## Examples
-Convert a Markdown file to HTML:
-```bash
-markdown2html README.md -o README.html
-```
-Convert a Markdown file with a custom template:
-```bash
-markdown2html input.md -t custom-template.html -o output.html
-```
-## API
-For programmatic use, you can require markdown2html in your Node.js scripts:
-```javascript
-const markdown2html = require('markdown2html');
 
-markdown2html.renderFile('input.md', 'output.html', (err) => {
-  if (err) {
-    console.error('Error converting Markdown to HTML:', err);
-  } else {
-    console.log('Markdown converted to HTML successfully!');
-  }
-});
+Converts the Markdown file `README.md` into `README.html`.
+
+---
+
+### 📌 Example
+
+Given a simple Markdown file:
+
+```markdown
+# My Title
+
+This is **bold** and *italic* text.
+
+- Item 1
+- Item 2
 ```
+
+Your HTML output should be:
+
+```html
+<h1>My Title</h1>
+<p>This is <strong>bold</strong> and <em>italic</em> text.</p>
+<ul>
+  <li>Item 1</li>
+  <li>Item 2</li>
+</ul>
+```
+
+---
+
+### 👤 Author
+
+Created by **Youssef Saad**  
+Part of the **holbertonschool-web_front_end** curriculum.
