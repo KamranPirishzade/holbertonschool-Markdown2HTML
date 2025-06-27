@@ -1,107 +1,136 @@
 #!/usr/bin/python3
-"""Markdown to HTML Converter"""
+"""
+A script that converts Markdown files to HTML format.
+Supports headings, lists (ordered and unordered), paragraphs,
+bold and emphasis text, and special syntax for MD5 hashing and character removal.
+"""
 
-import re
-import hashlib
 import sys
 import os
+import hashlib
+import re
 
-def convert_markdown_to_html(input_md_file, output_html_file):
-    # Check if the correct number of arguments is provided
-    if len(sys.argv) < 3:
-        sys.stderr.write("Usage: ./markdown2html.py README.md README.html\n")
-        exit(1)
+def md5_hash(text):
+    return hashlib.md5(text.encode()).hexdigest()
 
-    # Check if the Markdown file exists
-    if not os.path.exists(input_md_file):
-        sys.stderr.write("Missing " + input_md_file + "\n")
-        exit(1)
+def remove_c(text):
+    return re.sub(r'c', '', text, flags=re.IGNORECASE)
 
-    with open(input_md_file) as md_file:
-        with open(output_html_file, 'w') as html_file:
-            in_unordered_list = False
-            in_ordered_list = False
-            in_paragraph = False
+def process_text_formatting(text):
+    # Process MD5 syntax
+    text = re.sub(r'\[\[(.*?)\]\]', lambda m: md5_hash(m.group(1)), text)
+    # Process remove 'c' syntax
+    text = re.sub(r'\(\((.*?)\)\)', lambda m: remove_c(m.group(1)), text)
+    # Process bold text
+    text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', text)
+    # Process emphasis text
+    text = re.sub(r'__(.*?)__', r'<em>\1</em>', text)
+    return text
 
-            for line in md_file:
-                # Replace '**' with '<b>' and '</b>'
-                line = line.replace('**', '<b>', 1)
-                line = line.replace('**', '</b>', 1)
-
-                # Replace '__' with '<em>' and '</em>'
-                line = line.replace('__', '<em>', 1)
-                line = line.replace('__', '</em>', 1)
-
-                # Find all occurrences of '[[...]]' and replace them with the MD5 hash of the content inside the brackets
-                md5_matches = re.findall(r'\[\[.+?\]\]', line)
-                md5_contents = re.findall(r'\[\[(.+?)\]\]', line)
-                if md5_matches:
-                    line = line.replace(md5_matches[0], hashlib.md5(md5_contents[0].encode()).hexdigest())
-
-                # Find all occurrences of '(())' and remove the letter 'C' or 'c' from the content inside the brackets
-                delete_c_matches = re.findall(r'\(\(.+?\)\)', line)
-                remove_c_contents = re.findall(r'\(\((.+?)\)\)', line)
-                if delete_c_matches:
-                    remove_c_contents = ''.join(c for c in remove_c_contents[0] if c not in 'Cc')
-                    line = line.replace(delete_c_matches[0], remove_c_contents)
-
-                line_length = len(line)
-                line_without_headings = line.lstrip('#')
-                heading_count = line_length - len(line_without_headings)
-                line_without_unordered = line.lstrip('-')
-                unordered_count = line_length - len(line_without_unordered)
-                line_without_ordered = line.lstrip('*')
-                ordered_count = line_length - len(line_without_ordered)
-
-                # Convert heading lines to HTML heading tags
-                if 1 <= heading_count <= 6:
-                    line = '<h{}>'.format(heading_count) + line_without_headings.strip() + '</h{}>\n'.format(heading_count)
-
-                # Convert unordered list lines to HTML list items
-                if unordered_count:
-                    if not in_unordered_list:
-                        html_file.write('<ul>\n')
-                        in_unordered_list = True
-                    line = '<li>' + line_without_unordered.strip() + '</li>\n'
-                if in_unordered_list and not unordered_count:
-                    html_file.write('</ul>\n')
-                    in_unordered_list = False
-
-                # Convert ordered list lines to HTML list items
-                if ordered_count:
-                    if not in_ordered_list:
-                        html_file.write('<ol>\n')
-                        in_ordered_list = True
-                    line = '<li>' + line_without_ordered.strip() + '</li>\n'
-                if in_ordered_list and not ordered_count:
-                    html_file.write('</ol>\n')
-                    in_ordered_list = False
-
-                # Convert regular lines to HTML paragraphs or line breaks
-                if not (heading_count or in_unordered_list or in_ordered_list):
-                    if not in_paragraph and line_length > 1:
-                        html_file.write('<p>\n')
-                        in_paragraph = True
-                    elif line_length > 1:
-                        html_file.write('<br/>\n')
-                    elif in_paragraph:
-                        html_file.write('</p>\n')
-                        in_paragraph = False
-
-                # Write the line to the output file
-                if line_length > 1:
-                    html_file.write(line)
-
-            # Close any open HTML tags at the end of the file
+def convert_markdown_to_html(input_file, output_file):
+    if not os.path.exists(input_file):
+        print(f"Missing {input_file}", file=sys.stderr)
+        sys.exit(1)
+    
+    with open(input_file, 'r') as f:
+        content = f.read()
+    
+    # Process the content
+    lines = content.split('\n')
+    html_lines = []
+    in_unordered_list = False
+    in_ordered_list = False
+    in_paragraph = False
+    paragraph_lines = []
+    
+    for line in lines:
+        # Handle headings
+        if line.startswith('#'):
+            if in_unordered_list:
+                html_lines.append("</ul>")
+                in_unordered_list = False
             if in_ordered_list:
-                html_file.write('</ol>\n')
+                html_lines.append("</ol>")
+                in_ordered_list = False
             if in_paragraph:
-                html_file.write('</p>\n')
+                html_lines.append("</p>")
+                in_paragraph = False
+            heading_level = len(line.split(' ')[0])
+            if 1 <= heading_level <= 6:
+                heading_text = process_text_formatting(line[heading_level:].strip())
+                html_lines.append(f"<h{heading_level}>{heading_text}</h{heading_level}>")
+            continue
+        
+        # Handle unordered lists
+        if line.startswith('- '):
+            if in_ordered_list:
+                html_lines.append("</ol>")
+                in_ordered_list = False
+            if in_paragraph:
+                html_lines.append("</p>")
+                in_paragraph = False
+            if not in_unordered_list:
+                html_lines.append("<ul>")
+                in_unordered_list = True
+            list_item = process_text_formatting(line[2:].strip())
+            html_lines.append(f"<li>{list_item}</li>")
+            continue
+        elif in_unordered_list:
+            html_lines.append("</ul>")
+            in_unordered_list = False
+        
+        # Handle ordered lists
+        if line.startswith('* '):
+            if in_unordered_list:
+                html_lines.append("</ul>")
+                in_unordered_list = False
+            if in_paragraph:
+                html_lines.append("</p>")
+                in_paragraph = False
+            if not in_ordered_list:
+                html_lines.append("<ol>")
+                in_ordered_list = True
+            list_item = process_text_formatting(line[2:].strip())
+            html_lines.append(f"<li>{list_item}</li>")
+            continue
+        elif in_ordered_list:
+            html_lines.append("</ol>")
+            in_ordered_list = False
+        
+        # Handle paragraphs
+        if line.strip():
+            if not in_paragraph:
+                html_lines.append("<p>")
+                in_paragraph = True
+            if paragraph_lines:
+                html_lines.append("    <br />")
+            processed_line = process_text_formatting(line.strip())
+            html_lines.append(f"    {processed_line}")
+            paragraph_lines.append(line.strip())
+        elif in_paragraph:
+            html_lines.append("</p>")
+            in_paragraph = False
+            paragraph_lines = []
+    
+    # Close any open elements
+    if in_unordered_list:
+        html_lines.append("</ul>")
+    if in_ordered_list:
+        html_lines.append("</ol>")
+    if in_paragraph:
+        html_lines.append("</p>")
+    
+    html_content = '\n'.join(html_lines)
+    
+    with open(output_file, 'w') as f:
+        f.write(html_content)
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        sys.stderr.write("Usage: ./markdown2html.py README.md README.html\n")
-        exit(1)
-
-    convert_markdown_to_html(sys.argv[1], sys.argv[2])
-    exit(0)
+    if len(sys.argv) != 3:
+        print("Usage: ./markdown2html.py README.md README.html", file=sys.stderr)
+        sys.exit(1)
+    
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+    
+    convert_markdown_to_html(input_file, output_file)
